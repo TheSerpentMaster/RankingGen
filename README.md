@@ -1,0 +1,1 @@
+This project is aimed at creating a full-stack deployable web application which can generate a full-length Youtube Short and auto-post it to a configured channel or be downloaded as an MP4 (if configured to be so).
