@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>RankingGen</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background: radial-gradient(circle at top, #111827, #05060a 70%); color:#f8fafc; min-height:100vh; }
+    .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .card { background: rgba(15, 23, 42, .78); border:1px solid rgba(148,163,184,.2); border-radius:24px; box-shadow:0 20px 40px rgba(0,0,0,.25); backdrop-filter: blur(16px); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; padding:24px 28px; }
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; padding:0 28px 20px; }
+    .tab { background:#111827; color:#cbd5e1; padding:10px 14px; border-radius:999px; cursor:pointer; border:1px solid transparent; }
+    .tab.active { background: linear-gradient(90deg,#7c3aed,#2563eb); color:white; }
+    .panel { display:none; padding: 0 28px 28px; }
+    .panel.active { display:block; }
+    .hero { padding:28px; margin:24px 0; display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; }
+    input, textarea, button { font: inherit; }
+    input, textarea { width:100%; padding:14px 16px; border-radius:14px; border:1px solid #334155; background:#0f172a; color:white; margin-top:8px; }
+    button { cursor:pointer; padding:12px 18px; border:none; border-radius:999px; color:white; background: linear-gradient(90deg,#4f46e5,#06b6d4); box-shadow:0 8px 20px rgba(6,182,212,.24); }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .pill { padding:6px 10px; border-radius:999px; background:#1f2937; color:#67e8f9; display:inline-block; margin-top:8px; }
+    .toast { position:fixed; right:18px; bottom:18px; background:#111827; color:white; padding:13px 16px; border-radius:12px; opacity:0; transform:translateY(10px); transition: all .25s ease; pointer-events:none; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    .small { color:#94a3b8; font-size:.95rem; }
+    .status { margin-top: 12px; color:#86efac; }
+    .download-link { color:#67e8f9; text-decoration:none; }
+    .history-item { margin-top:8px; }
+    .preview { aspect-ratio: 9 / 16; background: linear-gradient(135deg,#1d4ed8,#7c3aed); border-radius:24px; display:flex; align-items:center; justify-content:center; padding:24px; color:white; text-align:center; animation: float 6s ease-in-out infinite; }
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+    @media (max-width: 780px){ .hero{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+<div class=\"app\">
+  <div class=\"card\">
+    <div class=\"topbar\">
+      <div>
+        <h1 style=\"margin:0\">RankingGen</h1>
+        <div class=\"small\">Create viral short-form ranking videos locally in one click.</div>
+      </div>
+      <a href=\"/logout\" style=\"color:#f8fafc;text-decoration:none\">Logout</a>
+    </div>
+    <div class=\"tabs\">
+      <div class=\"tab active\" data-tab=\"generator\">Generator</div>
+      <div class=\"tab\" data-tab=\"settings\">API Settings</div>
+      <div class=\"tab\" data-tab=\"history\">History</div>
+    </div>
+    <div class=\"panel active\" id=\"generator\">
+      <div class=\"hero\">
+        <div>
+          <h2 style=\"margin-top:0\">Turn any prompt into a polished Shorts-ready ranking clip</h2>
+          <p class=\"small\">Enter a topic, leave the rest to the generator, and download a 30-60s MP4 in 9:16.</p>
+          <textarea id=\"topic\" rows=\"4\" placeholder=\"e.g. best sci-fi movies of all time\"></textarea>
+          <button id=\"generateBtn\" style=\"margin-top:12px\">Generate Short</button>
+          <div id=\"status\" class=\"status\">Ready to create your next ranking short.</div>
+        </div>
+        <div class=\"preview\">
+          <div>
+            <div class=\"pill\">9:16 Shorts Format</div>
+            <h3>Auto-generated top-5 ranking narrative</h3>
+            <div class=\"small\">Local MP4 export • animated captions • viral-style pacing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class=\"panel\" id=\"settings\">
+      <div class=\"grid\">
+        <div class=\"card\" style=\"padding:18px\">
+          <h3 style=\"margin-top:0\">API configuration</h3>
+          <label>OpenAI API key</label>
+          <input id=\"openaiApiKey\" placeholder=\"sk-...\" />
+          <label style=\"margin-top:12px;display:block\">NVIDIA NIM Key</label>
+          <input id=\"nvidiaNimKey\" placeholder=\"nim-...\" />
+          <label style=\"margin-top:12px;display:block\">NVIDIA NIM Endpoint</label>
+          <input id=\"nvidiaNimEndpoint\" placeholder=\"https://api.nvidia.com/....\" />
+          <label style=\"margin-top:12px;display:block\">YouTube channel ID</label>
+          <input id=\"youtubeChannelId\" placeholder=\"UC...\" />
+          <button id=\"saveConfigBtn\" style=\"margin-top:14px\">Save configuration</button>
+        </div>
+      </div>
+    </div>
+    <div class=\"panel\" id=\"history\">
+      <div class=\"card\" style=\"padding:18px\">
+        <h3 style=\"margin-top:0\">Recent generations</h3>
+        <div id=\"historyList\" class=\"small\">No jobs yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id=\"toast\" class=\"toast\"></div>
+<script>
+  const tabs = [...document.querySelectorAll('.tab')];
+  const panels = [...document.querySelectorAll('.panel')];
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  }));
+  function toast(message){ const el=document.getElementById('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>el.classList.remove('show'), 2200); }
+  document.getElementById('generateBtn').addEventListener('click', async ()=>{
+    const topic = document.getElementById('topic').value.trim();
+    if(!topic){ toast('Please enter a topic.'); return; }
+    const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='Generating...';
+    document.getElementById('status').textContent='Rendering your short...';
+    const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
+    btn.disabled=false; btn.textContent='Generate Short';
+    const data=await response.json();
+    if(!response.ok){ toast(data.error || 'Generation failed'); document.getElementById('status').textContent='Generation failed.'; return; }
+    document.getElementById('status').innerHTML = '<a href="' + data.download_url + '" target="_blank" class="download-link">Download MP4</a>';
+    toast('Short generated and ready to download.');
+    loadHistory();
+  });
+  document.getElementById('saveConfigBtn').addEventListener('click', async ()=>{
+    const payload={
+      openai_api_key: document.getElementById('openaiApiKey').value,
+      nvidia_nim_key: document.getElementById('nvidiaNimKey').value,
+      nvidia_nim_endpoint: document.getElementById('nvidiaNimEndpoint').value,
+      youtube_channel_id: document.getElementById('youtubeChannelId').value
+    };
+    const response=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await response.json();
+    if(response.ok){ toast('Configuration saved.'); } else { toast(data.error || 'Save failed'); }
+  });
+  async function loadConfig(){
+    const response=await fetch('/api/config');
+    const data=await response.json();
+    document.getElementById('openaiApiKey').value=data.openai_api_key || '';
+    document.getElementById('nvidiaNimKey').value=data.nvidia_nim_key || '';
+    document.getElementById('nvidiaNimEndpoint').value=data.nvidia_nim_endpoint || '';
+    document.getElementById('youtubeChannelId').value=data.youtube_channel_id || '';
+  }
+  async function loadHistory(){
+    const response=await fetch('/api/history');
+    const data=await response.json();
+    const list=document.getElementById('historyList');
+    if(!data.length){ list.innerHTML='No jobs yet.'; return; }
+    list.innerHTML = data.map(item => '<div class="history-item"><strong>' + item.topic + '</strong><br/>' + item.status + ' • ' + (item.filename || 'video') + ' • ' + item.created_at + '</div>').join('');
+  }
+  loadConfig();
+  loadHistory();
+</script>
+</body>
+</html>

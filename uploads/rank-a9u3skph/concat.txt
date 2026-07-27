@@ -1,0 +1,10 @@
+file '/Users/schen/RankingGen/uploads/rank-a9u3skph/frame_0.png'
+duration 6
+file '/Users/schen/RankingGen/uploads/rank-a9u3skph/frame_1.png'
+duration 6
+file '/Users/schen/RankingGen/uploads/rank-a9u3skph/frame_2.png'
+duration 6
+file '/Users/schen/RankingGen/uploads/rank-a9u3skph/frame_3.png'
+duration 6
+file '/Users/schen/RankingGen/uploads/rank-a9u3skph/frame_4.png'
+duration 6
